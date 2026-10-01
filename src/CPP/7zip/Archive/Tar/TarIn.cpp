@@ -120,6 +120,13 @@ static bool ParseInt64_MTime(const char *p, Int64 &val, bool &isBin)
   // rare case tar : ZEROs in Docker-Windows TARs
   // rare case tar : spaces
   isBin = false;
+  // xzip: AIX tar writes the mtime of a symbolic link as NUL + digits ("\0" "1722000726 "). It is not
+  // a number, 7-Zip 26.03 and bsdtar read it as 0, and rejecting it ended the listing at the link.
+  if (p[0] == 0)
+  {
+    val = 0;
+    return true;
+  }
   if (GetUi32(p) != 0)
   for (unsigned i = 0; i < 12; i++)
     if (p[i] != ' ')

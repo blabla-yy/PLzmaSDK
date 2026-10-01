@@ -26,6 +26,7 @@
 
 
 #include <cstddef>
+#include <cerrno>
 #include <cwchar>
 
 #include "plzma_out_streams.hpp"
@@ -97,13 +98,25 @@ namespace plzma {
         if (_file) {
             return;
         }
+        errno = 0;
         FILE * f = _path.openFile("w+b");
         if (f) {
             _file = f;
         } else {
+            // xzip: read before anything else can touch errno.
+            const int err = errno;
             Exception exception(plzma_error_code_io, nullptr, __FILE__, __LINE__);
             exception.setWhat("Can't open out-stream for writing to file in binary mode with path: ", _path.utf8(), nullptr);
-            exception.setReason("You don't have write permission or parent directory doesn't exist.", nullptr);
+            // The original sentence stays for the causes it describes (and for errno unknown); any
+            // other errno (ENAMETOOLONG, ENOSPC, ...) is not a permission problem and says what it is.
+            if (err == 0 || err == EACCES || err == EPERM || err == EROFS || err == ENOENT) {
+                setErrnoReason(exception, err, "You don't have write permission or parent directory doesn't exist.");
+                if (err == 0) {
+                    exception.setReason("You don't have write permission or parent directory doesn't exist.", nullptr);
+                }
+            } else {
+                setErrnoReason(exception, err);
+            }
             throw exception;
         }
     }

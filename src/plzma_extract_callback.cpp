@@ -26,10 +26,13 @@
 
 
 #include <cstddef>
+#include <cerrno>
 
 #include "plzma_extract_callback.hpp"
 #include "plzma_item_name.hpp"
 #include "plzma_common.hpp"
+#include "plzma_file_utils.hpp"
+#include "plzma_symlink.hpp"
 #include "plzma_c_bindings_private.hpp"
 
 #include "CPP/Common/Defs.h"
@@ -151,9 +154,12 @@ namespace plzma {
             if (PROPVARIANTGetBool(prop)) { // directory
                 if (_itemsFullPath) {
                     fullPath.append(itemPath);
+                    errno = 0;
                     if (!fullPath.createDir(true)) {
+                        const int err = errno; // xzip: for the errno token in the reason
                         Exception exception(plzma_error_code_io, nullptr, __FILE__, __LINE__);
                         exception.setWhat("Can't create output directory at path: ", fullPath.utf8(), nullptr);
+                        fileUtils::setErrnoReason(exception, err);
                         throw exception;
                     }
                 }
@@ -164,9 +170,12 @@ namespace plzma {
             if (_itemsFullPath) {
                 fullPath.append(itemPath);
                 fullPath.removeLastComponent();
+                errno = 0;
                 if (!fullPath.createDir(true)) {
+                    const int err = errno; // xzip: for the errno token in the reason
                     Exception exception(plzma_error_code_io, nullptr, __FILE__, __LINE__);
                     exception.setWhat("Can't create output directory at path: ", fullPath.utf8(), nullptr);
+                    fileUtils::setErrnoReason(exception, err);
                     throw exception;
                 }
             }
@@ -180,14 +189,48 @@ namespace plzma {
             }
             itemPath = fullPath.lastComponent();
             fullPath.removeLastComponent();
+            errno = 0;
             if (!fullPath.createDir(true)) {
+                const int err = errno; // xzip: for the errno token in the reason
                 Exception exception(plzma_error_code_io, nullptr, __FILE__, __LINE__);
                 exception.setWhat("Can't create output directory at path: ", fullPath.utf8(), nullptr);
+                fileUtils::setErrnoReason(exception, err);
                 throw exception;
             }
             fullPath.append(itemPath);
         }
         
+        // xzip: an archive symlink becomes a symlink, not a regular file holding the target text (what
+        // the tar handler streams for it). Only one that can never lead out of the extraction
+        // directory (see plzma_symlink.hpp): anything else falls through to the old behaviour, a
+        // regular file holding the target text, which is harmless and loses nothing.
+        if (_type != plzma_file_type_xz) {
+            prop.Clear();
+            if (_archive->GetProperty(index, kpidSymLink, &prop) == S_OK && prop.vt == VT_BSTR && prop.bstrVal && prop.bstrVal[0] != 0) {
+                String target;
+                target.set(prop.bstrVal);
+                int err = 0;
+                const auto outcome = symlinkUtils::createInside(_path.utf8(), fullPath.utf8(), target.utf8(), err);
+                if (outcome == symlinkUtils::Outcome::failed) {
+                    Exception exception(plzma_error_code_io, nullptr, __FILE__, __LINE__);
+                    exception.setWhat("Can't create symbolic link at path: ", fullPath.utf8(), nullptr);
+                    fileUtils::setErrnoReason(exception, err);
+                    throw exception;
+                }
+                if (outcome == symlinkUtils::Outcome::created) {
+                    OutTestStream * stream = new OutTestStream();
+                    _currentOutStream = stream;
+#if !defined(LIBPLZMA_NO_PROGRESS)
+                    _progress->setPath(static_cast<Path &&>(itemPath));
+#endif
+                    stream->AddRef(); // for '*outStream'
+                    *outStream = stream;
+                    return;
+                }
+            }
+        }
+
+
         plzma_path_timestamp timestamp{0, 0, 0};
         
         {

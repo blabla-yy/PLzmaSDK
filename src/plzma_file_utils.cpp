@@ -26,6 +26,9 @@
 
 
 #include <cstddef>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 
 #include "plzma_file_utils.hpp"
 
@@ -33,6 +36,15 @@ namespace plzma {
 namespace fileUtils {
     
 #define LIBPLZMA_FILEUTILS_FILE_ERASE_BUFFSIZE 262144
+    
+    void setErrnoReason(Exception & exception, const int err, const char * LIBPLZMA_NULLABLE hint) {
+        if (err == 0) {
+            return;
+        }
+        char number[32];
+        ::snprintf(number, sizeof(number), "errno:%d ", err);
+        exception.setReason(number, hint ? hint : ::strerror(err), nullptr);
+    }
     
     bool fileErase(const Path & path, const plzma_erase eraseType) {
         if (eraseType == plzma_erase_zero) {

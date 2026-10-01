@@ -60,6 +60,11 @@ namespace fileUtils {
 #endif
     }
     
+    // xzip: puts the OS error number into an exception's reason as a leading "errno:<n>" token, so a
+    // caller can tell "name too long" from "not permitted" without parsing prose. `hint` follows when
+    // given, otherwise strerror(err). Does nothing for err == 0.
+    LIBPLZMA_CPP_API_PRIVATE(void) setErrnoReason(Exception & exception, const int err, const char * LIBPLZMA_NULLABLE hint = nullptr);
+    
     LIBPLZMA_CPP_API_PRIVATE(bool) fileErase(const Path & path, const plzma_erase eraseType);
     
     LIBPLZMA_CPP_API_PRIVATE(RawHeapMemorySize) fileContent(const Path & path, const uint64_t maxSize = UINT64_MAX);
