@@ -412,47 +412,32 @@ namespace plzma {
             itemsCount = numItems;
         }
         
-        const UInt32 maxIndicies = 256;
+        // xzip: every index in one Extract call. Upstream passed 256 at a time, and for a solid
+        // archive each call decodes the block from its start, so the work grew with the square of
+        // the entry count (COMPRESS-592: 70001 entries, one block, decoded 274 times).
+        CRecordVector<UInt32> indicies;
+        indicies.ClearAndReserve(itemsCount);
+        for (; itemIndex < itemsCount; itemIndex++) {
+            if (_itemsArray) {
+                indicies.AddInReserved(_itemsArray->at(itemIndex)->index());
+            } else if (_itemsMap) {
+                indicies.AddInReserved(_itemsMap->at(itemIndex).first->index());
+            } else {
+                indicies.AddInReserved(itemIndex);
+            }
+        }
 #if !defined(LIBPLZMA_NO_PROGRESS)
         _progress->reset();
-        UInt32 partsCount = itemsCount / maxIndicies;
-        partsCount = MyMax<UInt32>(1, partsCount);
-        if (itemsCount > partsCount * maxIndicies) {
-            partsCount++;
-        }
-        _progress->setPartsCount(partsCount);
+        _progress->setPartsCount(1);
+        _progress->startPart();
 #endif
-        
-        do {
-            UInt32 indicies[maxIndicies];
-            UInt32 fromIndex = 0, toIndex = 0, indicesCount = 0;
-            if (_itemsArray) {
-                while (indicesCount < maxIndicies && itemIndex < itemsCount) {
-                    indicies[indicesCount] = toIndex = _itemsArray->at(itemIndex)->index();
-                    if (indicesCount == 0) { fromIndex = toIndex; }
-                    itemIndex++; indicesCount++;
-                }
-            } else if (_itemsMap) {
-                while (indicesCount < maxIndicies && itemIndex < itemsCount) {
-                    indicies[indicesCount] = toIndex = _itemsMap->at(itemIndex).first->index();
-                    if (indicesCount == 0) { fromIndex = toIndex; }
-                    itemIndex++; indicesCount++;
-                }
-            } else {
-                fromIndex = itemIndex;
-                while (indicesCount < maxIndicies && itemIndex < itemsCount) {
-                    indicies[indicesCount++] = toIndex = itemIndex++;         // +1
-                }
-            }
-            _extractingFirstIndex = fromIndex;
-            _extractingLastIndex = toIndex;
-#if !defined(LIBPLZMA_NO_PROGRESS)
-            _progress->startPart();
-#endif
+        if (indicies.Size() > 0) {
+            _extractingFirstIndex = indicies[0];
+            _extractingLastIndex = indicies.Back();
             _extracting = true;
             
             LIBPLZMA_UNIQUE_LOCK_UNLOCK(lock)
-            const HRESULT result = (indicesCount > 0) ? _archive->Extract(indicies, indicesCount, _mode, this) : S_OK;
+            const HRESULT result = _archive->Extract(&indicies[0], indicies.Size(), _mode, this);
             LIBPLZMA_UNIQUE_LOCK_LOCK(lock)
             
             _extracting = false;
@@ -472,7 +457,7 @@ namespace plzma {
                 }
                 throw Exception(plzma_error_code_internal, "Unknown extract error.", __FILE__, __LINE__);
             }
-        } while (itemIndex < itemsCount);
+        }
         
 #if !defined(LIBPLZMA_NO_PROGRESS)
         _progress->finish();

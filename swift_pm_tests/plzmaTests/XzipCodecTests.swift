@@ -231,3 +231,28 @@ private func failure(_ name: String, type: FileType = .sevenZ, password: String?
         #expect(try decoder.test())
     }
 }
+
+@Suite(.serialized) struct XzipSolidExtractionTests {
+
+    private static func processCPUSeconds() -> Double {
+        var usage = rusage()
+        getrusage(RUSAGE_SELF, &usage)
+        func seconds(_ t: timeval) -> Double { Double(t.tv_sec) + Double(t.tv_usec) / 1_000_000 }
+        return seconds(usage.ru_utime) + seconds(usage.ru_stime)
+    }
+
+    /// Commons Compress's COMPRESS-592: 70001 entries, 2.5 MB, one solid block. Upstream hands
+    /// 7-Zip's Extract 256 indices at a time, and every call decodes the solid block from its start,
+    /// so the block was decoded 274 times — quadratic in the entry count, ~5 s of CPU for 2.5 MB
+    /// (7-Zip: 0.05 s). Decoding it once costs a fraction of a second of per-item bookkeeping.
+    /// CPU time rather than wall time, so a loaded machine does not make it flaky; the margin is
+    /// more than tenfold either way.
+    @Test func aSolidBlockIsDecodedOnceNotOncePerBatch() throws {
+        let decoder = try makeDecoder("COMPRESS-592.7z", type: .sevenZ, password: nil, delegate: nil)
+        #expect(try decoder.count() == 70001)
+        let before = Self.processCPUSeconds()
+        #expect(try decoder.test())
+        let used = Self.processCPUSeconds() - before
+        #expect(used < 1.5, "testing 70001 entries of one solid block took \(used) s of CPU")
+    }
+}
