@@ -224,6 +224,9 @@ LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_13(void);
 LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_14(void);
 LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_15(void);
 LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_16(void);
+LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_18(void);
+LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_19(void);
+LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_20(void);
 #  if !defined(LIBPLZMA_NO_TAR)
 LIBPLZMA_C_API_PRIVATE(uint64_t) plzma_registrator_17(void);
 #  endif

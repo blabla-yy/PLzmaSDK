@@ -19,6 +19,10 @@ let package = Package(
                 cxxSettings: [
                     .define("LIBPLZMA_VERSION_BUILD", to: "1448"),
                     .unsafeFlags(["-fPIC", "-fno-rtti"])
+                ],
+                linkerSettings: [
+                    .linkedLibrary("bz2"),
+                    .linkedLibrary("z")
                 ]),
         .target(name: "PLzmaSDK",
                 dependencies: [

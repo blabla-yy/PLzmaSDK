@@ -28,6 +28,7 @@
 #include <cstddef>
 
 #include "plzma_open_callback.hpp"
+#include "plzma_item_name.hpp"
 #include "plzma_common.hpp"
 
 namespace plzma {
@@ -106,7 +107,9 @@ namespace plzma {
             if (_archive->GetProperty(index, kpidPath, &path) == S_OK &&
                 _archive->GetProperty(index, kpidSize, &size) == S_OK &&
                 (path.vt == VT_EMPTY || path.vt == VT_BSTR)) {
-                    item = makeShared<Item>(static_cast<Path &&>(Path(path.bstrVal)), index);
+                    Path itemPath(path.bstrVal);
+                    setFallbackItemPath(_archive, index, _type, itemPath);
+                    item = makeShared<Item>(static_cast<Path &&>(itemPath), index);
                     item->setSize(PROPVARIANTGetUInt64(size));
             }
             return item;
@@ -169,6 +172,7 @@ namespace plzma {
 #endif
                                const plzma_file_type type) : CMyUnknownImp(),
         _archive(createArchive<IInArchive>(type)),
+        _type(type),
         _stream(stream) {
 #if !defined(LIBPLZMA_NO_CRYPTO)
             _password = passwd;

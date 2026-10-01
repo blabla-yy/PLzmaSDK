@@ -28,6 +28,7 @@
 #include <cstddef>
 
 #include "plzma_extract_callback.hpp"
+#include "plzma_item_name.hpp"
 #include "plzma_common.hpp"
 #include "plzma_c_bindings_private.hpp"
 
@@ -91,6 +92,7 @@ namespace plzma {
             (pathProp.vt == VT_EMPTY || pathProp.vt == VT_BSTR)) {
                 itemPath.set(pathProp.bstrVal);
         }
+        setFallbackItemPath(_archive, index, _type, itemPath);
         
         if (_type != plzma_file_type_xz && itemPath.count() == 0) {
             throw Exception(plzma_error_code_internal, "Can't read item path.", __FILE__, __LINE__);
@@ -134,6 +136,7 @@ namespace plzma {
         if (_archive->GetProperty(index, kpidPath, &prop) == S_OK && prop.vt == VT_BSTR) {
             itemPath.set(prop.bstrVal);
         }
+        setFallbackItemPath(_archive, index, _type, itemPath);
         
         if (_type != plzma_file_type_xz) {
             if (itemPath.count() == 0) {
@@ -227,6 +230,7 @@ namespace plzma {
             if (currentOutStream) {
                 currentOutStream->close();
             }
+            _currentIndex = index;
             
             switch (askExtractMode) {
                 case NAskMode::kExtract: getExtractStream(index, outStream); break;
@@ -277,6 +281,33 @@ namespace plzma {
         return S_OK;
     }
     
+    // xzip: the reason names which NOperationResult the item failed with, as a stable token, so a
+    // caller can tell a missing coder from damage from a wrong password. "unsupportedMethod" also
+    // carries the item's method list, e.g. "unsupportedMethod:BZip2 7zAES".
+    void ExtractCallback::setOperationResultReason(Exception * exception, const Int32 operationResult) {
+        if (!exception) {
+            return;
+        }
+        switch (operationResult) {
+            case NOperationResult::kUnsupportedMethod: {
+                String method;
+                NWindows::NCOM::CPropVariant prop;
+                if (_archive && _archive->GetProperty(_currentIndex, kpidMethod, &prop) == S_OK && prop.vt == VT_BSTR) {
+                    method.set(prop.bstrVal);
+                }
+                exception->setReason("unsupportedMethod:", method.utf8(), nullptr);
+                break;
+            }
+            case NOperationResult::kDataError: exception->setReason("dataError", nullptr); break;
+            case NOperationResult::kCRCError: exception->setReason("crcError", nullptr); break;
+            case NOperationResult::kUnexpectedEnd: exception->setReason("unexpectedEnd", nullptr); break;
+            case NOperationResult::kDataAfterEnd: exception->setReason("dataAfterEnd", nullptr); break;
+            // kIsNotArc (xz), and kUnavailable / kHeadersError / kWrongPassword, which none of the
+            // handlers compiled in here report.
+            default: exception->setReason("unknown", nullptr); break;
+        }
+    }
+    
     STDMETHODIMP ExtractCallback::SetOperationResult(Int32 operationResult) throw() {
         try {
             LIBPLZMA_LOCKGUARD(lock, _mutex)
@@ -290,6 +321,7 @@ namespace plzma {
                         return S_OK;
                     default:
                         _exception = Exception::create(plzma_error_code_internal, "Item extracted with error.", __FILE__, __LINE__);
+                        setOperationResultReason(_exception, operationResult);
                         _result = E_FAIL;
                         break;
                 }

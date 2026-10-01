@@ -66,6 +66,7 @@ namespace plzma {
         SharedPtr<ItemArray> _itemsArray;
         UInt32 _extractingFirstIndex = 0;
         UInt32 _extractingLastIndex = 0;
+        UInt32 _currentIndex = 0;
         Int32 _mode = 0; // The value of the 'NArchive::NExtract::NAskMode' anonymous enum.
         plzma_file_type _type = plzma_file_type_7z;
         bool _itemsFullPath = true;
@@ -74,6 +75,7 @@ namespace plzma {
         
         void getTestStream(const UInt32 index, ISequentialOutStream ** outStream);
         void getExtractStream(const UInt32 index, ISequentialOutStream ** outStream);
+        void setOperationResultReason(Exception * exception, const Int32 operationResult);
         
         void process();
         

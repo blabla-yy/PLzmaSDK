@@ -535,6 +535,9 @@ plzma_size_t kDecoderWriteSize = static_cast<unsigned int>(1) << 22;
             r |= plzma_registrator_14();
             r |= plzma_registrator_15();
             r |= plzma_registrator_16();
+            r |= plzma_registrator_18();
+            r |= plzma_registrator_19();
+            r |= plzma_registrator_20();
 #if !defined(LIBPLZMA_NO_TAR)
             r |= plzma_registrator_17();
 #endif

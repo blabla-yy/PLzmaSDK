@@ -54,6 +54,7 @@ namespace plzma {
         public CMyUnknownImp {
     private:
         CMyComPtr<IInArchive> _archive;
+        plzma_file_type _type = plzma_file_type_7z;
         CMyComPtr<InStreamBase> _stream;
         plzma_size_t _itemsCount = 0;
         
