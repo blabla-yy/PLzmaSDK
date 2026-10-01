@@ -211,6 +211,20 @@ private func failure(_ name: String, type: FileType = .sevenZ, password: String?
         #expect(written == ["[Content] 1", "[Content] 2"])
     }
 
+    /// Commons Compress's `synthetic/long-name.7z`: a 32767-character name 7-Zip itself rejects with
+    /// "Headers Error". An item whose name could not be *read* is not a nameless item, so it must not
+    /// be given "[Content]" — that turned a broken header into a successful extraction of an empty
+    /// file. It keeps upstream's refusal.
+    @Test func anItemWhoseHeaderIsBrokenIsNotTreatedAsNameless() throws {
+        #expect(try Self.names("long-name.7z") == [""])
+        let decoder = try makeDecoder("long-name.7z", type: .sevenZ, password: nil, delegate: nil)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let error = #expect(throws: Exception.self) { _ = try decoder.extract(to: Path(dir.path)) }
+        #expect(error?.what == "Can't read item path.")
+    }
+
     /// Testing an archive without writing it goes through the callback's third path-reading site.
     @Test func testingANamelessArchivePasses() throws {
         let decoder = try makeDecoder("no-entry-names.7z", type: .sevenZ, password: nil, delegate: nil)

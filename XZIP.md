@@ -11,7 +11,7 @@ a newer upstream.
 | Deflate64 decoder (040109), on zlib's `contrib/infback9` (vendored, unmodified) | same files, `src/C/infback9/` |
 | Shared decode loop for the two pull-style libraries | `src/CPP/7zip/Compress/PullDecoderLoop.h` |
 | An item failure's reason names 7-Zip's operation result (`unsupportedMethod:<methods>`, `dataError`, `crcError`, `unexpectedEnd`, `dataAfterEnd`, `unknown`); the `what` is unchanged | `src/plzma_extract_callback.cpp` (`setOperationResultReason`) |
-| A 7z item stored without a name is listed and extracted as `[Content]` (or `[Content] <n>` when the archive has several items) instead of failing with "Can't read item path." | `src/plzma_item_name.hpp`, used by the open and extract callbacks |
+| A 7z item stored without a name is listed and extracted as `[Content]` (or `[Content] <n>` when the archive has several items) instead of failing with "Can't read item path." — unless 7-Zip flagged the headers as broken, where the name was unreadable rather than absent | `src/plzma_item_name.hpp`, used by the open and extract callbacks |
 | Registrators 18–20 for the three codecs; libbz2 and libz linked | `src/plzma_private.h`, `src/plzma.cpp`, `Package.swift` |
 
 Decoders only: nothing here can write BZip2, Deflate or Deflate64. Only `Package.swift` is updated; the
