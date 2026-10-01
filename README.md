@@ -1,7 +1,7 @@
 > **This is a fork** of [OlehKulykov/PLzmaSDK](https://github.com/OlehKulykov/PLzmaSDK), maintained for the
 > xzip app. `master` mirrors upstream unchanged; the additions — BZip2, Deflate and Deflate64 decoders for 7z,
 > the operation result in an item failure's reason, and a name for 7z items stored without one — live on
-> the `tmp/xzip-codecs` branch and are listed in [XZIP.md](XZIP.md). For anything else, use upstream.
+> the `xzip` branch and are listed in [XZIP.md](XZIP.md). For anything else, use upstream.
 
 ![platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Android%20%7C%20Windows%20%7C%20Linux%20%7C%20Unix-lightgrey.svg)
 ![language](https://img.shields.io/badge/language-Swift%20%7C%20Objective%E2%80%93C%20%7C%20C%20%7C%20C++%20%7C%20JavaScript-brightgreen.svg)

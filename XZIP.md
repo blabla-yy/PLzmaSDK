@@ -1,6 +1,6 @@
 # xzip changes to PLzmaSDK
 
-Branch `tmp/xzip-codecs`, based on upstream tag `1.6.1` (`f449bc3`). Everything here exists for the xzip app
+Branch `xzip`, based on upstream tag `1.6.1` (`f449bc3`). Everything here exists for the xzip app
 (blabla-yy/unarchive-swiftui) and is kept as a small, separable set of additions so it can be rebased onto
 a newer upstream.
 
